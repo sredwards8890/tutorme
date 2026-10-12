@@ -150,7 +150,10 @@ export function Room({ room, link, onLeave }: Props) {
     othersRef.current = room.others;
     if (newcomers.length) sendProblem();
   }, [room.others, sendProblem]);
-  useEffect(() => { if (room.epoch > 1) sendProblem(); }, [room.epoch, sendProblem]);
+  const sentEpoch = useRef(0);
+  useEffect(() => {
+    if (room.epoch > 1 && room.epoch !== sentEpoch.current) { sentEpoch.current = room.epoch; sendProblem(); }
+  }, [room.epoch, sendProblem]);
 
   const dismissHint = () => { setShowHint(false); try { localStorage.setItem(HINT_KEY, "1"); } catch { /* ignore */ } };
 

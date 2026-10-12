@@ -63,6 +63,10 @@ export function useRoom(link: LinkParams | null): RoomApi {
   const wantConnected = useRef(false);
   const retryTimer = useRef<number | null>(null);
   const retryCount = useRef(0);
+  const micOnRef = useRef(false);
+  // The event-wiring effect below must run exactly once per Room (its cleanup disconnects), so
+  // anything it calls that can change identity is reached through a ref.
+  const scheduleRetryRef = useRef<() => void>(() => {});
 
   const identity = link?.identity ?? "student";
   const role: Role = identity === "tutor" ? "tutor" : "student";
@@ -90,12 +94,14 @@ export function useRoom(link: LinkParams | null): RoomApi {
       try {
         await connect();
         setError(null);
-        if (micOn) await room.localParticipant.setMicrophoneEnabled(true);
+        if (micOnRef.current) await room.localParticipant.setMicrophoneEnabled(true);
       } catch {
-        scheduleRetry();
+        scheduleRetryRef.current();
       }
     }, delay);
-  }, [connect, room, micOn]);
+  }, [connect, room]);
+  useEffect(() => { scheduleRetryRef.current = scheduleRetry; }, [scheduleRetry]);
+  useEffect(() => { micOnRef.current = micOn; }, [micOn]);
 
   useEffect(() => {
     const host = document.createElement("div");
@@ -137,7 +143,7 @@ export function useRoom(link: LinkParams | null): RoomApi {
     const onDisconnected = (reason?: DisconnectReason) => {
       setOthers([]); setShareTrack(null); setSharing(false);
       if (reason === DisconnectReason.CLIENT_INITIATED || !wantConnected.current) { setMicOn(false); return; }
-      scheduleRetry();
+      scheduleRetryRef.current();
     };
 
     room
@@ -161,7 +167,8 @@ export function useRoom(link: LinkParams | null): RoomApi {
       room.disconnect();
       host.remove();
     };
-  }, [room, refreshOthers, scheduleRetry]);
+    // Runs once per Room: refreshOthers is stable ([room]) and everything else goes through refs.
+  }, [room, refreshOthers]);
 
   const join = useCallback(async () => {
     setError(null);

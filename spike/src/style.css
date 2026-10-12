@@ -1,0 +1,35 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bar-h: 56px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #fff; color: #111; overscroll-behavior: none; }
+#app { height: 100%; display: flex; flex-direction: column; }
+
+.bar {
+  height: var(--bar-h); flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  padding: 0 12px; background: #f3f4f6; border-bottom: 1px solid #d1d5db; overflow-x: auto; white-space: nowrap;
+}
+.bar label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+button, input[type="text"], input[type="url"], select {
+  min-height: 44px; font-size: 16px; padding: 0 14px; border-radius: 8px; border: 1px solid #9ca3af; background: #fff;
+}
+button { cursor: pointer; }
+button.on { background: #2563eb; color: #fff; border-color: #1d4ed8; }
+button.danger { background: #fee2e2; border-color: #ef4444; }
+.fill { flex: 1 1 auto; min-height: 0; min-width: 0; position: relative; }
+.side { flex: 0 0 38%; max-width: 480px; min-width: 0; }
+.row { display: flex; gap: 12px; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.log {
+  font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; background: #0f172a; color: #e2e8f0;
+  padding: 8px; overflow: auto; white-space: pre; height: 100%;
+}
+.summary { font-size: 14px; padding: 8px 12px; background: #fffbeb; border-bottom: 1px solid #fcd34d; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e5e7eb; margin-right: 6px; font-size: 13px; }
+canvas.draw { touch-action: none; display: block; width: 100%; height: 100%; background: #fff; }
+.index { padding: 24px; max-width: 720px; font-size: 18px; line-height: 1.6; }
+.index a { display: block; padding: 14px 18px; margin: 10px 0; border: 1px solid #9ca3af; border-radius: 10px; text-decoration: none; color: #111; }
+video { background: #000; width: 100%; height: 100%; object-fit: contain; }
+.toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); background: #111; color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; }

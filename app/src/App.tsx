@@ -10,14 +10,28 @@ export interface LinkParams {
   room: string;
 }
 
-/** Private links carry the LiveKit URL and token in the fragment: /#url=...&token=... */
+/**
+ * Private links carry the LiveKit URL and token in the fragment: /#url=...&token=...
+ * Also accepted: the same pair as a query string, in case a mail client rewrote the link.
+ */
 function readLink(): LinkParams | null {
-  const h = new URLSearchParams(location.hash.replace(/^#/, ""));
-  const url = h.get("url");
-  const token = h.get("token");
-  if (!url || !token) return null;
-  const payload = decodeJwtPayload(token);
-  return { url, token, identity: payload.sub ?? "?", room: payload.video?.room ?? "?" };
+  const parsed = parseLinkText(location.hash) ?? parseLinkText(location.search);
+  if (!parsed) return null;
+  const payload = decodeJwtPayload(parsed.token);
+  return { ...parsed, identity: payload.sub ?? "?", room: payload.video?.room ?? "?" };
+}
+
+/** Pull url + token out of any text: a fragment, a query string, or a whole pasted link. */
+export function parseLinkText(text: string): { url: string; token: string } | null {
+  let t = text.trim();
+  try { t = decodeURIComponent(t); } catch { /* keep as-is */ }
+  const m = t.match(/url=([^&\s]+)[&\s]+token=([^&\s#]+)/);
+  if (!m) return null;
+  let url = m[1];
+  try { url = decodeURIComponent(url); } catch { /* keep as-is */ }
+  const token = m[2].replace(/[^A-Za-z0-9._-]/g, "");
+  if (!/^wss?:\/\//.test(url) || token.split(".").length !== 3) return null;
+  return { url, token };
 }
 
 function decodeJwtPayload(jwt: string): { sub?: string; video?: { room?: string } } {

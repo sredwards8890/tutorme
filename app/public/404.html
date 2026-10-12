@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TutorMe</title>
+  <script>
+    // GitHub Pages serves this for any unknown path under /tutorme/. Links mangled by mail or
+    // chat apps usually arrive with "#" encoded as "%23", which moves the fragment into the
+    // path (/tutorme/%23url=...). Recover the parameters and send the browser into the app.
+    (function () {
+      var SITE = "/tutorme/";
+      var tail = location.pathname.indexOf(SITE) === 0 ? location.pathname.slice(SITE.length) : "";
+      var raw = tail + location.search + location.hash;
+      var decoded = raw;
+      try { decoded = decodeURIComponent(raw); } catch (e) {}
+      var m = decoded.match(/url=([^&\s]+)[&\s]+token=([^&\s#]+)/);
+      var target = SITE;
+      if (m) {
+        target += "#url=" + encodeURIComponent(decodeURIComponent(m[1])) + "&token=" + m[2];
+      } else if (location.hash) {
+        target += location.hash;
+      }
+      location.replace(target);
+    })();
+  </script>
+</head>
+<body>
+  <p style="font-family: system-ui; padding: 24px">Opening TutorMe…</p>
+</body>
+</html>

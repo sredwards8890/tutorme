@@ -42,6 +42,16 @@ export interface RoomApi {
 export const canShareScreen = typeof navigator.mediaDevices?.getDisplayMedia === "function";
 const RETRY_MS = [2000, 4000, 8000, 15000, 30000];
 
+// Only genuine connectivity failures are retried. Being kicked because the same link was
+// opened elsewhere (DUPLICATE_IDENTITY) must NOT retry: the two sessions would kick each
+// other forever, and the newer one's join fails with "Cancelled publication by calling unpublish".
+const RETRYABLE = new Set<DisconnectReason>([
+  DisconnectReason.UNKNOWN_REASON, DisconnectReason.SIGNAL_CLOSE, DisconnectReason.CONNECTION_TIMEOUT,
+  DisconnectReason.MEDIA_FAILURE, DisconnectReason.STATE_MISMATCH, DisconnectReason.SERVER_SHUTDOWN,
+  DisconnectReason.MIGRATION,
+]);
+export const JOINED_ELSEWHERE = "This link was just opened somewhere else (another tab or device), so this one was disconnected. Close the other one, then tap Leave and Join again here.";
+
 export function useRoom(link: LinkParams | null): RoomApi {
   // No adaptiveStream: it pauses a remote video whose element is hidden or tiny, which bites a
   // share pane that lives behind a tab. Two people on one share do not need the bandwidth savings.
@@ -143,6 +153,16 @@ export function useRoom(link: LinkParams | null): RoomApi {
     const onDisconnected = (reason?: DisconnectReason) => {
       setOthers([]); setShareTrack(null); setSharing(false);
       if (reason === DisconnectReason.CLIENT_INITIATED || !wantConnected.current) { setMicOn(false); return; }
+      if (reason === DisconnectReason.DUPLICATE_IDENTITY) {
+        wantConnected.current = false; setMicOn(false);
+        setError(JOINED_ELSEWHERE);
+        return;
+      }
+      if (reason !== undefined && !RETRYABLE.has(reason)) {
+        wantConnected.current = false; setMicOn(false);
+        setError(`Disconnected (${DisconnectReason[reason] ?? reason}). Tap Leave, then Join again.`);
+        return;
+      }
       scheduleRetryRef.current();
     };
 
@@ -200,7 +220,10 @@ export function useRoom(link: LinkParams | null): RoomApi {
       setMicDeviceId(room.getActiveDevice("audioinput") ?? devices[0]?.deviceId ?? "");
     } catch (e) {
       wantConnected.current = false;
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      // A publish cancelled by a disconnect during join means we were kicked mid-join by the
+      // other session reconnecting (older builds) or by a duplicate open of the same link.
+      setError(/unpublish|cancel/i.test(msg) ? JOINED_ELSEWHERE : msg);
       throw e;
     }
   }, [room, link, connect]);

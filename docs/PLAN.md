@@ -142,6 +142,14 @@ in localStorage so a Home Screen launch without the fragment still joins, web ma
 icons plus a dismissible "Add to Home Screen" hint on the iPad, a self-view hide toggle,
 and Clear board (marks every element deleted so both sides clear).
 
+Device test 2026-10-12 (second pass): paste, maximize, props toggle, persistence, clear
+board, Home Screen launch and the Firefox self-view (canvas-drawn) all confirmed working.
+Two regressions found and fixed the same day: the room hook's wiring effect re-ran on mic
+toggle and disconnected the room ("engine not connected"); and auto-reconnect after a
+DUPLICATE_IDENTITY kick made an old Safari tab and the Home Screen app kick each other
+("Cancelled publication by calling unpublish"). Reconnect is now limited to genuine
+connectivity failures.
+
 Share self-view on Firefox: the first build showed a blank pane. Diagnosis from the
 student's screenshot: pure white, not black, so the video had no box. The share pane now
 uses absolute positioning only (no percentage-height chain) and shows a caption with the

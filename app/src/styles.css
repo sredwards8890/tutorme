@@ -59,7 +59,27 @@ button.danger { background: #fee2e2; border-color: #fca5a5; color: var(--danger)
 .divider::after { content: ""; width: 2px; height: 36px; border-radius: 2px; background: var(--line); }
 .divider:active, .divider.dragging { background: #e5e7eb; }
 
+.pane-head .icon { min-height: 32px; min-width: 36px; padding: 0 8px; font-size: 16px; border-radius: 8px; }
+.row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.muted { color: var(--muted); font-size: 13px; }
+
+/* Problem pane */
 .problem-empty { height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--muted); padding: 24px; }
+.problem-empty.over { background: #eff6ff; outline: 2px dashed var(--accent); outline-offset: -8px; }
+.problem-hint { display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
+.problem-hint p { margin: 0; }
+.problem { height: 100%; display: flex; flex-direction: column; }
+.problem-scroll { flex: 1; min-height: 0; overflow: auto; background: #e5e7eb; -webkit-overflow-scrolling: touch; }
+.problem-scroll img { display: block; margin: 0 auto; background: #fff; }
+.problem-scroll.fit img { width: 100%; height: auto; }
+.problem-foot { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); background: var(--panel); overflow-x: auto; }
+.problem-foot .spacer { flex: 1; }
+.thumbs { display: flex; gap: 6px; }
+.thumbs img { height: 36px; width: auto; border: 2px solid transparent; border-radius: 4px; cursor: pointer; background: #fff; }
+.thumbs img.on { border-color: var(--accent); }
+
+/* Share pane */
+.share { height: 100%; position: relative; }
 .share-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
 .share-empty { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); text-align: center; padding: 24px; }
 .toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 10; pointer-events: none; }
@@ -69,3 +89,5 @@ button.danger { background: #fee2e2; border-color: #fca5a5; color: var(--danger)
 .whiteboard { height: 100%; }
 .whiteboard .excalidraw .App-toolbar { --default-button-size: 2.5rem; }
 .whiteboard .excalidraw .layer-ui__wrapper__footer-right { display: none; }
+/* The stroke/colour/width island is wide and sits over the canvas; shown only on demand. */
+.whiteboard.hide-props .excalidraw .App-menu__left { display: none; }

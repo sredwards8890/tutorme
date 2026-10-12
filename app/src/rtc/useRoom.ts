@@ -40,7 +40,9 @@ export interface RoomApi {
 export const canShareScreen = typeof navigator.mediaDevices?.getDisplayMedia === "function";
 
 export function useRoom(link: LinkParams | null): RoomApi {
-  const room = useMemo(() => new Room({ adaptiveStream: true, dynacast: true }), []);
+  // No adaptiveStream: it pauses a remote video whose element is hidden or tiny, which bites a
+  // share pane that lives behind a tab. Two people on one share do not need the bandwidth savings.
+  const room = useMemo(() => new Room({ adaptiveStream: false, dynacast: true }), []);
   const [state, setState] = useState<ConnectionState | "offline">(link ? ConnectionState.Disconnected : "offline");
   const [others, setOthers] = useState<string[]>([]);
   const [speaking, setSpeaking] = useState<Set<string>>(new Set());

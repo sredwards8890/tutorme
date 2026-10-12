@@ -13,9 +13,11 @@ installPenPressureNormalizer(true);
 interface Props {
   room: RoomApi;
   onApi: (api: ExcalidrawImperativeAPI) => void;
+  /** Show Excalidraw's stroke/colour/width panel. It is wide; off by default so the board is clear. */
+  showProps: boolean;
 }
 
-export function Whiteboard({ room, onApi }: Props) {
+export function Whiteboard({ room, onApi, showProps }: Props) {
   const sync = useMemo(() => new BoardSync(room.send), [room.send]);
   const othersRef = useRef<string[]>([]);
 
@@ -32,7 +34,7 @@ export function Whiteboard({ room, onApi }: Props) {
   }, [room.others, sync]);
 
   return (
-    <div className="whiteboard">
+    <div className={`whiteboard${showProps ? "" : " hide-props"}`}>
       <Excalidraw
         excalidrawAPI={(api) => { sync.api = api; onApi(api); }}
         onChange={(elements) => sync.onLocalChange(elements)}

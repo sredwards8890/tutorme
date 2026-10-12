@@ -132,9 +132,12 @@ synced over a chunked data channel (Excalidraw's `reconcileElements`, full-scene
 on join), share pane with self-view and auto-switch, snapshot routed to the student's PC,
 GitHub Pages deploy at the site root, token-minting script. Problem pane is a placeholder.
 
-**Phase 2: Problem pane and polish.** Paste-to-share screenshot, auto-switch to screen share,
-pane maximize/swap, IndexedDB persistence and scene handoff, reconnect handling, PWA
-manifest and install prompt.
+**Phase 2: Problem pane and polish. PARTLY DONE 2026-10-12.** Done: paste-to-share
+screenshot (Ctrl+V anywhere, Paste button, drag-drop, file picker; downscaled to 1600 px,
+history of six, sent to a newcomer on join), auto-switch to screen share, pane maximize,
+whiteboard properties panel hidden behind a toggle. Remaining: IndexedDB persistence and
+scene handoff, reconnect handling, PWA manifest and install prompt, hide the self-view when
+the student shares the app's own window.
 
 **Phase 3: Only if asked.** Second share track for the LMS tab, board export to PDF, camera
 video, a third participant, Cloudflare Worker token route instead of pre-minted tokens.

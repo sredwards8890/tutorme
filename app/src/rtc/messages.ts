@@ -6,6 +6,7 @@ import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/ty
 export type Msg =
   | { t: "els"; els: OrderedExcalidrawElement[] }       // incremental element updates
   | { t: "scene"; els: OrderedExcalidrawElement[] }     // full scene, sent when someone joins
+  | { t: "problem"; id: string; dataUrl: string; w: number; h: number; at: number } // the question image
   | { t: "snapshot"; from: string }                      // "please export the board on your machine"
   | { t: "snapshot-done"; name: string }
   | { t: "ping"; id: number }

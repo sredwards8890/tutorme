@@ -3,7 +3,7 @@ import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { LinkParams } from "../App";
 import type { RoomApi } from "../rtc/useRoom";
 import { Whiteboard } from "../whiteboard/Whiteboard";
-import { snapshotToFile } from "../whiteboard/snapshot";
+import { archiveBoard, snapshotToFile } from "../whiteboard/snapshot";
 import { imageFromClipboard, imageFromDataTransfer, prepareProblemImage, type ProblemImage } from "../problem/image";
 import { debouncedSetter, kvGet } from "../persist/kv";
 import { SplitPane, type Maximized } from "./SplitPane";
@@ -115,13 +115,36 @@ export function Room({ room, link, onLeave }: Props) {
     else { room.send({ t: "snapshot", from: room.identity }); flash("Asked the student's PC to save it"); }
   };
 
-  // ---- Clear board (both sides) ---------------------------------------------------------
+  // ---- Clear board / New session (both sides) --------------------------------------------
   const clearBoard = () => {
     if (!api) return;
     if (!window.confirm("Clear the whiteboard for both of you? Snapshots you saved are not affected.")) return;
     room.send({ t: "clear" });
     clearLocal(api);
     flash("Board cleared");
+  };
+
+  // Archive on the student's PC (PNG + .excalidraw), then clear for both. Same routing as
+  // Snapshot: whoever is the saver does the work; the other side just asks.
+  const archiveAndClear = useCallback(async () => {
+    if (!api) return [];
+    const names = await archiveBoard(api);
+    room.send({ t: "clear" });
+    clearLocal(api);
+    return names;
+  }, [api, room]);
+
+  const newSession = async () => {
+    if (!api) return;
+    const where = iSave ? "this PC" : "the student's PC";
+    if (!window.confirm(`Start a new session? The current board is saved to ${where} (PNG + Excalidraw file), then cleared for both of you.`)) return;
+    if (iSave) {
+      const names = await archiveAndClear();
+      flash(names.length ? `Saved ${names.join(" and ")}. Board cleared.` : "Board was empty. Cleared.");
+    } else {
+      room.send({ t: "new-session", from: room.identity });
+      flash("Asked the student's PC to save the board…");
+    }
   };
 
   // ---- Inbound messages ----------------------------------------------------------------
@@ -131,6 +154,12 @@ export function Room({ room, link, onLeave }: Props) {
     } else if (msg.t === "clear") {
       if (api) clearLocal(api);
       flash("The other person cleared the board");
+    } else if (msg.t === "new-session" && room.role === "student") {
+      const names = await archiveAndClear();
+      room.send({ t: "new-session-done", names });
+      flash(names.length ? `Saved ${names.join(" and ")}. New session.` : "New session.");
+    } else if (msg.t === "new-session-done") {
+      flash(msg.names.length ? `Saved on the student's PC: ${msg.names.join(", ")}. New session.` : "New session.");
     } else if (msg.t === "snapshot" && room.role === "student") {
       const name = await doSnapshot();
       if (name) room.send({ t: "snapshot-done", name });
@@ -139,7 +168,7 @@ export function Room({ room, link, onLeave }: Props) {
     } else if (msg.t === "ping") {
       room.send({ t: "pong", id: msg.id });
     }
-  }), [room, api, addProblem, doSnapshot, flash]);
+  }), [room, api, addProblem, doSnapshot, archiveAndClear, flash]);
 
   // Newcomers and reconnects get the current problem (the whiteboard sends its own scene).
   const sendProblem = useCallback(() => {
@@ -188,6 +217,7 @@ export function Room({ room, link, onLeave }: Props) {
           <button className={room.sharing ? "on" : ""} onClick={room.toggleShare}>{room.sharing ? "Stop share" : "Share Excel"}</button>
         )}
         <button onClick={onSnapshotClick} disabled={!api}>Snapshot</button>
+        <button onClick={newSession} disabled={!api} title="Save the board to the student's PC, then clear it for both">New session</button>
         <button onClick={clearBoard} disabled={!api}>Clear board</button>
         <button className="danger" onClick={onLeave}>Leave</button>
       </div>

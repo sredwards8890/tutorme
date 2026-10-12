@@ -19,12 +19,15 @@ const people = [
   { identity: "student", name: "Student" },
 ];
 
+// Five years: the room is permanent, so the links should outlive any likely use of the app.
+const TTL_DAYS = 365 * 5;
+
 for (const p of people) {
-  const at = new AccessToken(key, secret, { identity: p.identity, name: p.name, ttl: "365d" });
+  const at = new AccessToken(key, secret, { identity: p.identity, name: p.name, ttl: `${TTL_DAYS}d` });
   at.addGrant({ roomJoin: true, room, canPublish: true, canSubscribe: true, canPublishData: true });
   const jwt = await at.toJwt();
   // Token goes in the URL fragment so it is never sent to the static host's logs.
   const link = `${base}/#url=${encodeURIComponent(url)}&token=${encodeURIComponent(jwt)}`;
-  console.log(`\n${p.name} (${p.identity}), valid 365 days:\n${link}`);
+  console.log(`\n${p.name} (${p.identity}), valid ${TTL_DAYS} days:\n${link}`);
 }
 console.log("\nSend each link privately to its owner. Re-run to rotate.");

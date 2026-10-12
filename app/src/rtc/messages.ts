@@ -8,6 +8,8 @@ export type Msg =
   | { t: "scene"; els: OrderedExcalidrawElement[] }     // full scene, sent when someone joins
   | { t: "problem"; id: string; dataUrl: string; w: number; h: number; at: number } // the question image
   | { t: "clear" }                                        // the other side cleared the board (elements also arrive as deleted)
+  | { t: "new-session"; from: string }                   // "archive the board on your machine, then clear"
+  | { t: "new-session-done"; names: string[] }
   | { t: "snapshot"; from: string }                      // "please export the board on your machine"
   | { t: "snapshot-done"; name: string }
   | { t: "ping"; id: number }

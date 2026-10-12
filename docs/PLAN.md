@@ -150,6 +150,11 @@ DUPLICATE_IDENTITY kick made an old Safari tab and the Home Screen app kick each
 ("Cancelled publication by calling unpublish"). Reconnect is now limited to genuine
 connectivity failures.
 
+Rooms decision (2026-10-12): one permanent room, no self-service room creation. Links are
+minted for five years. "New session" archives the board to the student's PC (PNG plus
+.excalidraw) and clears both sides; "Clear board" clears without saving. If separate
+rooms are ever truly needed, the route is a Cloudflare Worker token service behind a PIN.
+
 Share self-view on Firefox: the first build showed a blank pane. Diagnosis from the
 student's screenshot: pure white, not black, so the video had no box. The share pane now
 uses absolute positioning only (no percentage-height chain) and shows a caption with the

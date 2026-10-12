@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Join } from "./join/Join";
 import { Room } from "./room/Room";
 import { useRoom } from "./rtc/useRoom";
@@ -69,6 +69,13 @@ export function App() {
   const link = useMemo(readLink, []);
   const [joined, setJoined] = useState(false);
   const room = useRoom(link);
+
+  // `?debug=...` opens the room without a tap so headless browsers can screenshot it.
+  const debug = new URLSearchParams(location.search).get("debug");
+  useEffect(() => {
+    if (debug && !link && !joined) { void room.join().then(() => setJoined(true)); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debug, link]);
 
   if (!joined) {
     return <Join link={link} onJoin={async () => { await room.join(); setJoined(true); }} error={room.error} />;

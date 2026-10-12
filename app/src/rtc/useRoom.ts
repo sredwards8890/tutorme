@@ -172,7 +172,23 @@ export function useRoom(link: LinkParams | null): RoomApi {
 
   const join = useCallback(async () => {
     setError(null);
-    if (!link) return; // offline mode: nothing to connect to
+    if (!link) {
+      // Offline mode: nothing to connect to. `?debug=share` fakes a local share from a canvas so
+      // the share pane can be inspected in any browser without a LiveKit session.
+      if (new URLSearchParams(location.search).get("debug") === "share") {
+        const c = document.createElement("canvas");
+        c.width = 915; c.height = 1080;
+        const g = c.getContext("2d")!;
+        g.fillStyle = "#0a0"; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = "#fff"; g.fillRect(100, 100, 700, 300);
+        const mst = c.captureStream(5).getVideoTracks()[0];
+        const fake = { mediaStreamTrack: mst, attach: () => undefined, detach: () => [] } as unknown as Track;
+        setShareTrack(fake);
+        setShareIsLocal(true);
+        setSharing(true);
+      }
+      return;
+    }
     wantConnected.current = true;
     try {
       await connect();

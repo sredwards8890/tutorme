@@ -34,5 +34,9 @@ src/
   rtc/useRoom.ts       LiveKit room: audio, share, speaking, chunked data channel
   rtc/messages.ts      message types and the 14 KB chunked transport
   whiteboard/          Excalidraw, two-peer sync, PNG snapshot, pen pressure override
+  problem/image.ts     clipboard / drop / file → downscaled image for the problem pane
+  persist/kv.ts        IndexedDB key/value (board + problem history per room)
+public/                manifest, icons, 404.html (repairs mangled join links)
 scripts/mint-tokens.ts token minting (identities "tutor" and "student" drive the roles)
+scripts/make-icons.mjs regenerates public/icons/*.png
 ```

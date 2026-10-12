@@ -132,12 +132,20 @@ synced over a chunked data channel (Excalidraw's `reconcileElements`, full-scene
 on join), share pane with self-view and auto-switch, snapshot routed to the student's PC,
 GitHub Pages deploy at the site root, token-minting script. Problem pane is a placeholder.
 
-**Phase 2: Problem pane and polish. PARTLY DONE 2026-10-12.** Done: paste-to-share
+**Phase 2: Problem pane and polish. DONE 2026-10-12, awaiting device test.** Paste-to-share
 screenshot (Ctrl+V anywhere, Paste button, drag-drop, file picker; downscaled to 1600 px,
 history of six, sent to a newcomer on join), auto-switch to screen share, pane maximize,
-whiteboard properties panel hidden behind a toggle. Remaining: IndexedDB persistence and
-scene handoff, reconnect handling, PWA manifest and install prompt, hide the self-view when
-the student shares the app's own window.
+whiteboard properties panel behind a toggle, IndexedDB persistence of the board and the
+problem history per room (deleted markers pruned after a day), full-scene and problem
+resend on join and after every reconnect, automatic reconnect with backoff, join link saved
+in localStorage so a Home Screen launch without the fragment still joins, web manifest and
+icons plus a dismissible "Add to Home Screen" hint on the iPad, a self-view hide toggle,
+and Clear board (marks every element deleted so both sides clear).
+
+Share self-view on Firefox: the first build showed a blank pane. Diagnosis from the
+student's screenshot: pure white, not black, so the video had no box. The share pane now
+uses absolute positioning only (no percentage-height chain) and shows a caption with the
+frame size and play state so the next test is diagnostic either way.
 
 **Phase 3: Only if asked.** Second share track for the LMS tab, board export to PDF, camera
 video, a third participant, Cloudflare Worker token route instead of pre-minted tokens.

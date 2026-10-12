@@ -42,6 +42,11 @@ export class BoardSync {
     this.send({ t: "els", els });
   };
 
+  /** Record versions we already hold (e.g. restored from storage) without sending them. */
+  markKnown(els: readonly OrderedExcalidrawElement[]) {
+    for (const el of els) this.known.set(el.id, Math.max(this.known.get(el.id) ?? -1, el.version));
+  }
+
   /** Push everything (including deleted markers) so a newly joined peer catches up. */
   sendFullScene() {
     if (!this.api) return;

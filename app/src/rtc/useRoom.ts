@@ -1,9 +1,9 @@
-// One hook that owns the LiveKit Room: connection, mic, speaking, screen share (remote or
-// self-view), and the chunked data channel. Works "offline" (no link) so the UI can be
-// developed and the whiteboard used without a server.
+// One hook that owns the LiveKit Room: connection (with reconnect), mic, speaking, screen
+// share (remote or self-view), and the chunked data channel. Works "offline" (no link) so
+// the UI can be developed and the whiteboard used without a server.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ConnectionState, Room, RoomEvent, Track,
+  ConnectionState, DisconnectReason, Room, RoomEvent, Track,
   type LocalTrackPublication, type Participant, type RemoteParticipant, type RemoteTrack,
 } from "livekit-client";
 import type { LinkParams } from "../App";
@@ -19,6 +19,8 @@ export interface RoomApi {
   others: string[];
   speaking: Set<string>;
   error: string | null;
+  /** Increments every time the connection is (re)established; consumers resend their state. */
+  epoch: number;
   micOn: boolean;
   toggleMic: () => Promise<void>;
   micDevices: MediaDeviceInfo[];
@@ -38,6 +40,7 @@ export interface RoomApi {
 }
 
 export const canShareScreen = typeof navigator.mediaDevices?.getDisplayMedia === "function";
+const RETRY_MS = [2000, 4000, 8000, 15000, 30000];
 
 export function useRoom(link: LinkParams | null): RoomApi {
   // No adaptiveStream: it pauses a remote video whose element is hidden or tiny, which bites a
@@ -47,6 +50,7 @@ export function useRoom(link: LinkParams | null): RoomApi {
   const [others, setOthers] = useState<string[]>([]);
   const [speaking, setSpeaking] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [epoch, setEpoch] = useState(0);
   const [micOn, setMicOn] = useState(false);
   const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
   const [micDeviceId, setMicDeviceId] = useState("");
@@ -56,19 +60,49 @@ export function useRoom(link: LinkParams | null): RoomApi {
   const [audioBlocked, setAudioBlocked] = useState(false);
   const listeners = useRef(new Set<Listener>());
   const reassemblers = useRef(new Map<string, Reassembler>());
-  const audioHost = useRef<HTMLDivElement | null>(null);
+  const wantConnected = useRef(false);
+  const retryTimer = useRef<number | null>(null);
+  const retryCount = useRef(0);
 
   const identity = link?.identity ?? "student";
   const role: Role = identity === "tutor" ? "tutor" : "student";
+
+  const refreshOthers = useCallback(() => {
+    setOthers([...room.remoteParticipants.values()].map((p) => p.identity));
+  }, [room]);
+
+  const connect = useCallback(async () => {
+    if (!link) return;
+    await room.connect(link.url, link.token);
+    retryCount.current = 0;
+    refreshOthers();
+    setEpoch((e) => e + 1);
+  }, [room, link, refreshOthers]);
+
+  const scheduleRetry = useCallback(() => {
+    if (!wantConnected.current || retryTimer.current !== null) return;
+    const delay = RETRY_MS[Math.min(retryCount.current, RETRY_MS.length - 1)];
+    retryCount.current++;
+    setError(`Connection lost. Reconnecting in ${Math.round(delay / 1000)}s…`);
+    retryTimer.current = window.setTimeout(async () => {
+      retryTimer.current = null;
+      if (!wantConnected.current) return;
+      try {
+        await connect();
+        setError(null);
+        if (micOn) await room.localParticipant.setMicrophoneEnabled(true);
+      } catch {
+        scheduleRetry();
+      }
+    }, delay);
+  }, [connect, room, micOn]);
 
   useEffect(() => {
     const host = document.createElement("div");
     host.style.display = "none";
     document.body.appendChild(host);
-    audioHost.current = host;
 
-    const refreshOthers = () => setOthers([...room.remoteParticipants.values()].map((p) => p.identity));
-    const onTrack = (track: RemoteTrack, _pub: unknown, _p: RemoteParticipant) => {
+    const onTrack = (track: RemoteTrack) => {
       if (track.kind === Track.Kind.Audio) {
         host.appendChild(track.attach());
       } else if (track.source === Track.Source.ScreenShare) {
@@ -100,6 +134,11 @@ export function useRoom(link: LinkParams | null): RoomApi {
         setShareTrack((t) => (t === pub.track ? null : t));
       }
     };
+    const onDisconnected = (reason?: DisconnectReason) => {
+      setOthers([]); setShareTrack(null); setSharing(false);
+      if (reason === DisconnectReason.CLIENT_INITIATED || !wantConnected.current) { setMicOn(false); return; }
+      scheduleRetry();
+    };
 
     room
       .on(RoomEvent.ConnectionStateChanged, (s) => setState(s))
@@ -113,33 +152,41 @@ export function useRoom(link: LinkParams | null): RoomApi {
       .on(RoomEvent.LocalTrackUnpublished, onLocalUnpublished)
       .on(RoomEvent.AudioPlaybackStatusChanged, () => setAudioBlocked(!room.canPlaybackAudio))
       .on(RoomEvent.MediaDevicesError, (e: Error) => setError(`Device error: ${e.message}`))
-      .on(RoomEvent.Disconnected, () => { setOthers([]); setShareTrack(null); setSharing(false); setMicOn(false); });
+      .on(RoomEvent.Reconnected, () => { setError(null); refreshOthers(); setEpoch((e) => e + 1); })
+      .on(RoomEvent.Disconnected, onDisconnected);
 
     return () => {
+      wantConnected.current = false;
+      if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
       room.disconnect();
       host.remove();
     };
-  }, [room]);
+  }, [room, refreshOthers, scheduleRetry]);
 
   const join = useCallback(async () => {
     setError(null);
     if (!link) return; // offline mode: nothing to connect to
+    wantConnected.current = true;
     try {
-      await room.connect(link.url, link.token);
+      await connect();
       await room.startAudio(); // iOS: must follow a user gesture (the Join tap)
       await room.localParticipant.setMicrophoneEnabled(true);
       setMicOn(true);
-      setOthers([...room.remoteParticipants.values()].map((p) => p.identity));
       const devices = await Room.getLocalDevices("audioinput");
       setMicDevices(devices);
       setMicDeviceId(room.getActiveDevice("audioinput") ?? devices[0]?.deviceId ?? "");
     } catch (e) {
+      wantConnected.current = false;
       setError((e as Error).message);
       throw e;
     }
-  }, [room, link]);
+  }, [room, link, connect]);
 
-  const leave = useCallback(() => { room.disconnect(); }, [room]);
+  const leave = useCallback(() => {
+    wantConnected.current = false;
+    if (retryTimer.current !== null) { window.clearTimeout(retryTimer.current); retryTimer.current = null; }
+    room.disconnect();
+  }, [room]);
 
   const toggleMic = useCallback(async () => {
     const next = !micOn;
@@ -176,7 +223,7 @@ export function useRoom(link: LinkParams | null): RoomApi {
   }, []);
 
   return {
-    state, identity, role, others, speaking, error,
+    state, identity, role, others, speaking, error, epoch,
     micOn, toggleMic, micDevices, micDeviceId, setMicDevice,
     canShare: canShareScreen && role === "student", sharing, toggleShare, shareTrack, shareIsLocal,
     audioBlocked, unblockAudio, send, subscribe, join, leave,

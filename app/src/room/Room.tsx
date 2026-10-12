@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { LinkParams } from "../App";
 import type { RoomApi } from "../rtc/useRoom";
 import { Whiteboard } from "../whiteboard/Whiteboard";
 import { snapshotToFile } from "../whiteboard/snapshot";
 import { imageFromClipboard, imageFromDataTransfer, prepareProblemImage, type ProblemImage } from "../problem/image";
+import { debouncedSetter, kvGet } from "../persist/kv";
 import { SplitPane, type Maximized } from "./SplitPane";
 import { SharePane } from "./SharePane";
 import { ProblemPane } from "./ProblemPane";
@@ -17,9 +18,19 @@ interface Props {
 
 type RightTab = "board" | "share";
 const HISTORY = 6;
+const HINT_KEY = "tutorme.installHintDismissed";
 const canClipboardRead = typeof navigator.clipboard?.read === "function";
 
+function isIpadBrowser(): boolean {
+  const ua = navigator.userAgent;
+  const iPadLike = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
+    || window.matchMedia("(display-mode: standalone)").matches;
+  return iPadLike && !standalone;
+}
+
 export function Room({ room, link, onLeave }: Props) {
+  const roomName = link?.room ?? "offline";
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [tab, setTab] = useState<RightTab>("board");
   const [max, setMax] = useState<Maximized>(null);
@@ -27,7 +38,11 @@ export function Room({ room, link, onLeave }: Props) {
   const [toast, setToast] = useState("");
   const [problems, setProblems] = useState<ProblemImage[]>([]);
   const [problemId, setProblemId] = useState<string | null>(null);
+  const [showHint, setShowHint] = useState(() => {
+    try { return isIpadBrowser() && !localStorage.getItem(HINT_KEY); } catch { return false; }
+  });
   const othersRef = useRef<string[]>([]);
+  const saveProblems = useMemo(() => debouncedSetter(`problems:${roomName}`, 500), [roomName]);
 
   const flash = useCallback((s: string) => { setToast(s); window.setTimeout(() => setToast(""), 2500); }, []);
 
@@ -36,6 +51,13 @@ export function Room({ room, link, onLeave }: Props) {
 
   // ---- Problem image -------------------------------------------------------------------
   const current = problems.find((p) => p.id === problemId) ?? null;
+
+  useEffect(() => {
+    kvGet<{ list: ProblemImage[]; id: string | null }>(`problems:${roomName}`)
+      .then((saved) => { if (saved?.list?.length) { setProblems(saved.list); setProblemId(saved.id ?? saved.list[0].id); } })
+      .catch(() => { /* storage unavailable */ });
+  }, [roomName]);
+  useEffect(() => { if (problems.length) saveProblems({ list: problems, id: problemId }); }, [problems, problemId, saveProblems]);
 
   const addProblem = useCallback((p: ProblemImage, broadcast: boolean) => {
     setProblems((list) => [p, ...list.filter((x) => x.id !== p.id)].slice(0, HISTORY));
@@ -93,10 +115,22 @@ export function Room({ room, link, onLeave }: Props) {
     else { room.send({ t: "snapshot", from: room.identity }); flash("Asked the student's PC to save it"); }
   };
 
+  // ---- Clear board (both sides) ---------------------------------------------------------
+  const clearBoard = () => {
+    if (!api) return;
+    if (!window.confirm("Clear the whiteboard for both of you? Snapshots you saved are not affected.")) return;
+    room.send({ t: "clear" });
+    clearLocal(api);
+    flash("Board cleared");
+  };
+
   // ---- Inbound messages ----------------------------------------------------------------
   useEffect(() => room.subscribe(async (msg) => {
     if (msg.t === "problem") {
       addProblem({ id: msg.id, dataUrl: msg.dataUrl, w: msg.w, h: msg.h, at: msg.at }, false);
+    } else if (msg.t === "clear") {
+      if (api) clearLocal(api);
+      flash("The other person cleared the board");
     } else if (msg.t === "snapshot" && room.role === "student") {
       const name = await doSnapshot();
       if (name) room.send({ t: "snapshot-done", name });
@@ -105,16 +139,20 @@ export function Room({ room, link, onLeave }: Props) {
     } else if (msg.t === "ping") {
       room.send({ t: "pong", id: msg.id });
     }
-  }), [room, addProblem, doSnapshot, flash]);
+  }), [room, api, addProblem, doSnapshot, flash]);
 
-  // When someone new arrives, give them the current problem (the whiteboard sends its own scene).
+  // Newcomers and reconnects get the current problem (the whiteboard sends its own scene).
+  const sendProblem = useCallback(() => {
+    if (current) room.send({ t: "problem", id: current.id, dataUrl: current.dataUrl, w: current.w, h: current.h, at: current.at });
+  }, [room, current]);
   useEffect(() => {
     const newcomers = room.others.filter((id) => !othersRef.current.includes(id));
     othersRef.current = room.others;
-    if (newcomers.length && current) {
-      room.send({ t: "problem", id: current.id, dataUrl: current.dataUrl, w: current.w, h: current.h, at: current.at });
-    }
-  }, [room, room.others, current]);
+    if (newcomers.length) sendProblem();
+  }, [room.others, sendProblem]);
+  useEffect(() => { if (room.epoch > 1) sendProblem(); }, [room.epoch, sendProblem]);
+
+  const dismissHint = () => { setShowHint(false); try { localStorage.setItem(HINT_KEY, "1"); } catch { /* ignore */ } };
 
   const stateLabel = room.state === "offline" ? "offline (no link)" : room.state;
   const otherLabel = room.others.length ? room.others.join(", ") : "waiting for the other person";
@@ -127,7 +165,7 @@ export function Room({ room, link, onLeave }: Props) {
   return (
     <>
       <div className="bar">
-        <span className="pill">{room.role} · {link?.room ?? "no room"}</span>
+        <span className="pill">{room.role} · {roomName}</span>
         <span className={`pill ${room.state === "connected" ? "ok" : "warn"}`}>{stateLabel}</span>
         <span className="pill">
           <span className={`dot${[...room.speaking].some((id) => id !== room.identity) ? " speaking" : ""}`} />
@@ -147,8 +185,17 @@ export function Room({ room, link, onLeave }: Props) {
           <button className={room.sharing ? "on" : ""} onClick={room.toggleShare}>{room.sharing ? "Stop share" : "Share Excel"}</button>
         )}
         <button onClick={onSnapshotClick} disabled={!api}>Snapshot</button>
+        <button onClick={clearBoard} disabled={!api}>Clear board</button>
         <button className="danger" onClick={onLeave}>Leave</button>
       </div>
+
+      {showHint && (
+        <div className="hint">
+          <span>Tip: add TutorMe to your Home Screen for full screen. Tap the Share icon, then <b>Add to Home Screen</b>.</span>
+          <span className="spacer" />
+          <button className="tab" onClick={dismissHint}>Got it</button>
+        </div>
+      )}
 
       <SplitPane
         maximized={max}
@@ -185,7 +232,7 @@ export function Room({ room, link, onLeave }: Props) {
               {maxBtn("right")}
             </div>
             <div className="pane-body" style={{ display: tab === "board" ? "block" : "none" }}>
-              <Whiteboard room={room} onApi={setApi} showProps={showProps} />
+              <Whiteboard room={room} roomName={roomName} onApi={setApi} showProps={showProps} />
             </div>
             <div className="pane-body" style={{ display: tab === "share" ? "block" : "none" }}>
               <SharePane track={room.shareTrack} isLocal={room.shareIsLocal} canShare={room.canShare} onShare={room.toggleShare} />
@@ -203,4 +250,15 @@ export function Room({ room, link, onLeave }: Props) {
       )}
     </>
   );
+}
+
+/** Mark every element deleted with a version bump so the change path broadcasts it. */
+function clearLocal(api: ExcalidrawImperativeAPI) {
+  const now = Date.now();
+  const els = api.getSceneElementsIncludingDeleted();
+  api.updateScene({
+    elements: els.map((el) => el.isDeleted ? el : ({
+      ...el, isDeleted: true, version: el.version + 1, versionNonce: (Math.random() * 0x7fffffff) | 0, updated: now,
+    })),
+  });
 }

@@ -1,9 +1,10 @@
-name: Deploy spike to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
+      - "app/**"
       - "spike/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -20,23 +21,33 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: spike
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: spike/package-lock.json
+          cache-dependency-path: |
+            app/package-lock.json
+            spike/package-lock.json
+
+      # The app is the site root: https://<user>.github.io/tutorme/
       - run: npm ci
-      # Project site lives at https://<user>.github.io/tutorme/; "pages" mode sets that base.
+        working-directory: app
+      - run: npm run build:pages
+        working-directory: app
+
+      # The spike stays reachable under /spike/ for device re-tests.
+      - run: npm ci
+        working-directory: spike
       - run: npm run build -- --mode pages
+        working-directory: spike
+      - run: mkdir -p app/dist/spike && cp -r spike/dist/. app/dist/spike/
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: spike/dist
+          path: app/dist
 
   deploy:
     needs: build

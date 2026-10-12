@@ -1,6 +1,8 @@
 {
   "version": "0.0.1",
   "configurations": [
+    { "name": "app", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--prefix", "app"], "port": 5180 },
+    { "name": "app-https", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:https", "--prefix", "app"], "port": 5181, "url": "https://localhost:5181" },
     { "name": "spike", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--prefix", "spike"], "port": 5173 },
     { "name": "spike-https", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:https", "--prefix", "spike"], "port": 5174, "url": "https://localhost:5174" }
   ]

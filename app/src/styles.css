@@ -1,0 +1,71 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bar-h: 56px;
+  --bg: #ffffff;
+  --panel: #f3f4f6;
+  --line: #d1d5db;
+  --ink: #111827;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --accent-ink: #ffffff;
+  --danger: #dc2626;
+  --ok: #16a34a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overscroll-behavior: none; }
+#app { height: 100dvh; display: flex; flex-direction: column; }
+
+button, select {
+  min-height: 44px; font-size: 16px; padding: 0 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.danger { background: #fee2e2; border-color: #fca5a5; color: var(--danger); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #e5e7eb; font-size: 13px; color: var(--ink); }
+.pill.ok { background: #dcfce7; }
+.pill.warn { background: #fef3c7; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.dot.speaking { background: var(--ok); box-shadow: 0 0 0 3px #bbf7d0; }
+
+/* Join */
+.join { margin: auto; max-width: 420px; width: 100%; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.join h1 { margin: 0 0 4px; font-size: 28px; }
+.join p { margin: 0; color: var(--muted); }
+.join .error { color: var(--danger); }
+.join input { min-height: 44px; font-size: 16px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); }
+
+/* Room */
+.bar {
+  height: var(--bar-h); flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right));
+  background: var(--panel); border-bottom: 1px solid var(--line); overflow-x: auto; white-space: nowrap;
+}
+.bar .spacer { flex: 1; }
+.room { flex: 1; min-height: 0; display: flex; }
+.pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.pane-head {
+  height: 40px; flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 0 8px;
+  background: var(--panel); border-bottom: 1px solid var(--line); font-size: 14px; color: var(--muted);
+}
+.pane-head .tab { min-height: 32px; padding: 0 12px; font-size: 14px; border-radius: 8px; }
+.pane-body { flex: 1; min-height: 0; position: relative; }
+.divider {
+  flex: 0 0 10px; cursor: col-resize; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+  touch-action: none; display: flex; align-items: center; justify-content: center;
+}
+.divider::after { content: ""; width: 2px; height: 36px; border-radius: 2px; background: var(--line); }
+.divider:active, .divider.dragging { background: #e5e7eb; }
+
+.problem-empty { height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--muted); padding: 24px; }
+.share-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.share-empty { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); text-align: center; padding: 24px; }
+.toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 10; pointer-events: none; }
+.audio-blocked { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); z-index: 20; }
+
+/* Excalidraw tweaks: bigger hit targets for the stylus, hide the bits we do not use. */
+.whiteboard { height: 100%; }
+.whiteboard .excalidraw .App-toolbar { --default-button-size: 2.5rem; }
+.whiteboard .excalidraw .layer-ui__wrapper__footer-right { display: none; }

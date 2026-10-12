@@ -25,10 +25,10 @@ This only covers same-Wi-Fi testing; the cross-home test needs a real deploy (be
 
 ## Deploy (free, for testing from both homes)
 
-GitHub Pages, via `.github/workflows/pages.yml`: every push to `main` that touches `spike/`
-builds with `--mode pages` (base `/tutorme/`) and publishes `spike/dist` to
-`https://sredwards8890.github.io/tutorme/`. Set `BASE_URL` in `.env` to that URL before
-minting tokens for cross-home use. Pages is free for public repos only.
+GitHub Pages, via `.github/workflows/pages.yml`: every push to `main` builds the app to the
+site root and this spike (`--mode pages`, base `/tutorme/spike/`) to
+`https://sredwards8890.github.io/tutorme/spike/`. Set `BASE_URL` in `.env` to that URL
+before minting spike tokens for cross-home use. Pages is free for public repos only.
 
 ## Pages
 

@@ -50,7 +50,7 @@ Served over HTTPS on the LAN with a self-signed certificate (`npm run dev:https`
 | Check | Result |
 |-------|--------|
 | Audio both ways | Working |
-| Data-channel round trip (Ping) | 36–48 ms, both directions |
+| Data-channel round trip (Ping) | 36–48 ms on the LAN; 70–170 ms via the GitHub Pages link (traffic relayed through LiveKit's SFU) |
 | Excel window shared from Windows | Visible on the iPad |
 | Pre-minted token join links | Working on both devices |
 

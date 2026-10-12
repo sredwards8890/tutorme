@@ -125,9 +125,12 @@ Excalidraw's native pen handling applies: pen draws, fingers pan/zoom and select
 Escape hatch for item 1: if palm rejection with the generic stylus is unusable, an Apple
 Pencil (USB-C) or Logitech Crayon reports as a real pen and fixes it at the hardware level.
 
-**Phase 1: Minimum room (1–2 weeks of evenings).** Vite + React app, private-link join,
-LiveKit audio, split layout, Excalidraw whiteboard synced over the data channel, snapshot
-to Windows Downloads, Cloudflare Pages deploy, token-minting script. First real session.
+**Phase 1: Minimum room. BUILT 2026-10-12, awaiting the first real session.** `app/`:
+Vite + React + TypeScript, private-link join (role from the token identity), LiveKit audio
+with mic picker and speaking indicators, draggable split layout, Excalidraw whiteboard
+synced over a chunked data channel (Excalidraw's `reconcileElements`, full-scene catch-up
+on join), share pane with self-view and auto-switch, snapshot routed to the student's PC,
+GitHub Pages deploy at the site root, token-minting script. Problem pane is a placeholder.
 
 **Phase 2: Problem pane and polish.** Paste-to-share screenshot, auto-switch to screen share,
 pane maximize/swap, IndexedDB persistence and scene handoff, reconnect handling, PWA
